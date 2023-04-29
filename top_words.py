@@ -364,7 +364,7 @@ def get_idti_lexicon(json_file_path):
     # else:
     #     base_path = os.path.dirname(os.path.dirname(json_file_path))
     # lexicon_silver_path = os.path.join(base_path, "lexicon_silver")
-    lexicon_silver_path = "test/lexicon_silver"
+    lexicon_silver_path = "human-eval/it-vac/all/lexicon_silver"
 
     lexicon = {}
     reversed_lexicon = {}
@@ -584,29 +584,44 @@ def process_csv(print_sents_with_gt, strong_indicator, lang_flag, original_tsv_f
 
     print("class 0: lexicon words frequency in explanation:")
     print("{:<2} \t\t {:<2} ".format("[class 0]", "[class 1]"))
+    tmp_count = 0
+    new_class_zero_lexicon_with_count = {}
     for word in class_zero_lexicon_with_count:
+        # run this only for top_n times
+        if tmp_count == top_n:
+            break
+        tmp_count += 1
+
         if ((class_zero_lexicon_with_count[word] == 0) and (count_words_in_exp[0][lexicon[word]] == 0)) is False:
-
-            print("{:<2}: {:>2} \t\t {:<2}: {:>2}".format(word, class_zero_lexicon_with_count[word], lexicon[word],
-                                                      count_words_in_exp[0][lexicon[word]]))
-
+            if class_zero_lexicon_with_count[word] >=5 and count_words_in_exp[0][lexicon[word]] ==0:
+                print("{:<2}: {:>2} \t\t {:<2}: {:>2}".format(word, class_zero_lexicon_with_count[word], lexicon[word],
+                                                          count_words_in_exp[0][lexicon[word]]))
+            new_class_zero_lexicon_with_count[word] = class_zero_lexicon_with_count[word]
     print("*" * 20)
 
 
     print("class 1: lexicon words frequency in explanation:")
     print("{:<2} \t\t {:<2} ".format("[class 0]", "[class 1]"))
+    tmp_count = 0
+    new_class_one_lexicon_with_count = {}
     for word in class_one_lexicon_with_count:
+        # run this only for top_n times
+        if tmp_count == top_n:
+            break
+        tmp_count += 1
         # get its key value from the lexicon
         translation = reversed_lexicon[word]
         if ((class_one_lexicon_with_count[word] == 0) and (count_words_in_exp[1][translation] == 0)) is False:
-            print("{:<2}: {:>2} \t\t {:<2}: {:>2}".format(translation, count_words_in_exp[1][translation], word,
-                                                      class_one_lexicon_with_count[word]))
+            if class_one_lexicon_with_count[word] >=5 and count_words_in_exp[1][translation] ==0:
+                print("{:<2}: {:>2} \t\t {:<2}: {:>2}".format(translation, count_words_in_exp[1][translation], word,
+                                                          class_one_lexicon_with_count[word]))
+            new_class_one_lexicon_with_count[word] = class_one_lexicon_with_count[word]
 
     print("*" * 20)
 
-    print("class 0: lexicon words PR:")
-    for word in class_zero_lexicon_with_count:
-        word_count_exp = class_zero_lexicon_with_count[word]
+    PR_list_class_zero = []
+    for word in new_class_zero_lexicon_with_count:
+        word_count_exp = new_class_zero_lexicon_with_count[word]
         word_count_text = count_words_in_text[word]
         pr = 0
         translation_pr = 0
@@ -619,13 +634,13 @@ def process_csv(print_sents_with_gt, strong_indicator, lang_flag, original_tsv_f
             if translation_count_text != 0:
                 translation_pr = round(translation_count_exp / translation_count_text, 3)
             if pr != 0 or translation_pr != 0:
-                print("{:<2}: {:>2} \t\t {:<2}: {:>2}".format(word, pr, translation, translation_pr))
-
+                PR_list_class_zero.append((word, pr))
+                # print("{:<2}: {:>2} \t\t {:<2}: {:>2}".format(word, pr, translation, translation_pr))
     print("*" * 20)
 
-    print("class 1: lexicon words PR:")
-    for word in class_one_lexicon_with_count:
-        word_count_exp = class_one_lexicon_with_count[word]
+    PR_list_class_one = []
+    for word in new_class_one_lexicon_with_count:
+        word_count_exp = new_class_one_lexicon_with_count[word]
         word_count_text = count_words_in_text[word]
         pr = 0
         translation_pr = 0
@@ -638,7 +653,27 @@ def process_csv(print_sents_with_gt, strong_indicator, lang_flag, original_tsv_f
             if translation_count_text != 0:
                 translation_pr = round(translation_count_exp / translation_count_text, 3)
             if pr != 0 or translation_pr != 0:
-                print("{:<2}: {:>2} \t\t {:<2}: {:>2}".format(translation, translation_pr, word, pr))
+                PR_list_class_one.append((word, pr))
+                # print("{:<2}: {:>2} \t\t {:<2}: {:>2}".format(translation, translation_pr, word, pr))
+
+    # sort PR list based on the PR score
+    PR_list_class_zero = sorted(PR_list_class_zero, key=lambda x: x[1], reverse=True)
+    PR_list_class_one = sorted(PR_list_class_one, key=lambda x: x[1], reverse=True)
+
+    print("class 0: lexicon words PR:")
+    # print top_n words for class 0
+    for i in range(top_n):
+        if i < len(PR_list_class_zero):
+            print("{:<2}: {:>2} \t\t {:<2}: {:>2}".format(PR_list_class_zero[i][0], PR_list_class_zero[i][1],
+                                                          lexicon[PR_list_class_zero[i][0]], PR_list_class_zero[i][1]))
+    print("class 1: lexicon words PR:")
+    # print top_n words for class 1
+    for i in range(top_n):
+        if i < len(PR_list_class_one):
+            print("{:<2}: {:>2} \t\t {:<2}: {:>2}".format(PR_list_class_one[i][0], PR_list_class_one[i][1],
+                                                          reversed_lexicon[PR_list_class_one[i][0]],
+                                                          PR_list_class_one[i][1]))
+
 
     top_n = int(top_n / 2)
     dup_check(class_top_words)
@@ -985,9 +1020,9 @@ if __name__ == '__main__':
         #         print_sents_with_gt=print_sents_with_gt
         #     )
 
-        exp_file_path = "result_1gram.csv"
-        original_tsv_file_path = "test.tsv"
-        json_file = "test_with_parse.json"
+        exp_file_path = "human-eval/it-vac/all/result_1gram.csv"
+        original_tsv_file_path = "human-eval/it-vac/all/test.tsv"
+        json_file = "human-eval/it-vac/all/test_with_parse.json"
         lang_flag = "it"
         if "zh" in exp_file_path:
             lang_flag = "zh"

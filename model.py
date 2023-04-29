@@ -5,6 +5,7 @@ from tqdm import tqdm
 # Set device to GPU if available, else use CPU
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+torch.cuda.empty_cache()
 
 class XLMRBinaryClassifier:
     def __init__(self, model_name='xlm-roberta-base', num_labels=2):
@@ -13,7 +14,7 @@ class XLMRBinaryClassifier:
         self.model = transformers.AutoModelForSequenceClassification.from_pretrained(model_name,
                                                                                      num_labels=num_labels).to(device)
 
-    def train(self, train_texts, train_labels, batch_size=16, num_epochs=5, learning_rate=2e-5):
+    def train(self, train_texts, train_labels, batch_size=1, num_epochs=5, learning_rate=2e-5):
         # Tokenize training texts
         train_encodings = self.tokenizer(train_texts, truncation=True, padding=True, max_length=512)
 

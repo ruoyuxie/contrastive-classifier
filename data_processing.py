@@ -16,7 +16,7 @@ def get_data(json_file):
                     data.append((sentence, label))
 
     # only keep first 50 sentences
-    data = data
+    #data = data
 
     return data
 
@@ -131,15 +131,25 @@ def main():
     clf = XLMRBinaryClassifier()
 
     # Train classifier on example data
-    # clf.train(train_texts, train_labels)
-    # clf.save_model("model")
+    clf.train(train_texts, train_labels)
+    clf.save_model("model")
 
 
     clf.load_model("model")
 
+    # Evaluate contrastive_experiment
+    #contrastive_experiment(train_texts, train_labels, clf)
+
+    # Evaluate leave_one_out_experiment
+    leave_one_out_experiment_per_sent(train_texts[0], clf)
+
+
+
+def contrastive_experiment(data, label, model):
+
     predictions = []
 
-    for sentence in train_texts:
+    for sentence in data:
 
         original_text = sentence
         contrastive_text = ""
@@ -162,8 +172,8 @@ def main():
         for original_text, contrastive_text in zip([original_text], [contrastive_text]):
 
 
-            original_pred_label, original_proba = clf.predict(original_text)
-            contrastive_pred_label, contrastive_proba = clf.predict(contrastive_text)
+            original_pred_label, original_proba = model.predict(original_text)
+            contrastive_pred_label, contrastive_proba = model.predict(contrastive_text)
 
             predictions.append(int(original_pred_label))
 
@@ -188,11 +198,39 @@ def main():
 
                 print("---------------------------------")
     # compare the predictions with the train_labels
-    print("Accuracy: ", accuracy(predictions, train_labels))
-    print("F1: ", f1(predictions, train_labels))
-    print("Precision: ", precision(predictions, train_labels))
-    print("Recall: ", recall(predictions, train_labels))
+    print("Accuracy: ", accuracy(predictions, label))
+    print("F1: ", f1(predictions, label))
+    print("Precision: ", precision(predictions, label))
+    print("Recall: ", recall(predictions, label))
 
+def leave_one_out_experiment_per_sent(original_sent, model):
+
+    original_pred_label, original_proba = model.predict(original_sent)
+    print(f"Original sentence: {original_sent}")
+    print(f"Original sentence prediction: {original_pred_label}")
+    print(f"Original sentence probability: {original_proba}")
+    print("\n")
+
+    # Split sentence into a list of words
+    words = original_sent.split()
+
+    # Perform LOO on each word in the sentence
+    for i in range(len(words)):
+        # Remove one word from the sentence
+        left_out_word = words.pop(i)
+        left_out_sentence = " ".join(words)
+
+        # Evaluate the impact on the sentence
+        # (In this example, we're just printing the left-out sentence for simplicity)
+        llo_pred_label, llo_proba = model.predict(left_out_sentence)
+        print(f"Left out word: {left_out_word}")
+        print(f"Left out sentence: {left_out_sentence}")
+        print(f"Left out sentence prediction: {llo_pred_label}")
+        print(f"Left out sentence probability: {llo_proba}")
+        print("\n")
+
+        # Add the left-out word back into the sentence for the next iteration
+        words.insert(i, left_out_word)
 
 
 def accuracy(predictions, labels):
