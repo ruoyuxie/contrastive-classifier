@@ -44,7 +44,7 @@ def tokenize_and_clean (file_name, data):
             tokens = clean(tokens)
             tokenized.append(tokens)
 
-    elif "zh" in file_name:
+    elif "cn-tw" in file_name:
         if "TW" in file_name:
             jieba.set_dictionary('dict.txt.big')
         else:
@@ -92,7 +92,7 @@ for bucket in glob.glob('frmt_dataset/*'):
                 pt_pt = read_tsv_file(tsv_file)
                 # tokenize the sentences
                 pt_pt = tokenize_and_clean(file_name,pt_pt)
-        elif file_name.startswith('zh'):
+        elif file_name.startswith('cn-tw'):
             if file_name.endswith('CN.tsv'):
                 zh_cn = read_tsv_file(tsv_file)
                 # tokenize the sentences
@@ -111,7 +111,7 @@ for bucket in glob.glob('frmt_dataset/*'):
         os.makedirs(parallel_folder)
     with open(os.path.join(parallel_folder, 'pt.tsv'), 'w') as f:
         f.write('\n'.join(combined_pt))
-    with open(os.path.join(parallel_folder, 'zh.tsv'), 'w') as f:
+    with open(os.path.join(parallel_folder, 'cn-tw.tsv'), 'w') as f:
         f.write('\n'.join(combined_zh))
 
     # todo: create selfexp dataset
@@ -132,7 +132,7 @@ for bucket in glob.glob('frmt_dataset/*'):
             f.write(left + '\t' + '0' + '\n')
             f.write(right + '\t' + '1' + '\n')
 
-    with open(os.path.join(self_exp_folder, 'zh.tsv'), 'w') as f:
+    with open(os.path.join(self_exp_folder, 'cn-tw.tsv'), 'w') as f:
         # split the sentences into two parts with the delimiter ' ||| '
         for sent in combined_zh:
             left, right = sent.split(' ||| ')
@@ -153,7 +153,7 @@ for bucket in glob.glob('frmt_dataset/*'):
             if file_name.startswith('pt'):
                 if file_name.startswith('pt'):
                     all_pt += tsv_file
-            elif file_name.startswith('zh'):
+            elif file_name.startswith('cn-tw'):
                     all_zh += tsv_file
 
 with open('frmt-clean/all_pt.tsv', 'w') as f:
@@ -166,17 +166,17 @@ with open('frmt-clean/all_zh.tsv', 'w') as f1:
     for sent in all_zh:
         f1.write(sent)
 
-#split the data into train, dev, test
-for lang in ['pt', 'zh']:
+#split the data into train, dev, human-eval
+for lang in ['pt', 'cn-tw']:
     with open('frmt-clean/all_{}.tsv'.format(lang), 'r') as f:
         data = f.readlines()
         # shuffle the data
         random.shuffle(data)
-        # split the data into train, dev, test
+        # split the data into train, dev, human-eval
         train = data[:int(len(data) * 0.8)]
         dev = data[int(len(data) * 0.8):int(len(data) * 0.9)]
         test = data[int(len(data) * 0.9):]
-        # write the data to the train, dev, test files to split folder
+        # write the data to the train, dev, human-eval files to split folder
         with open('frmt-clean/split/{}/train.tsv'.format(lang), 'w') as f1:
             f1.write("sentence\tlabel\n")
             for sent in train:
@@ -185,7 +185,7 @@ for lang in ['pt', 'zh']:
             f2.write("sentence\tlabel\n")
             for sent in dev:
                 f2.write(sent)
-        with open('frmt-clean/split/{}/test.tsv'.format(lang), 'w') as f3:
+        with open('frmt-clean/split/{}/human-eval.tsv'.format(lang), 'w') as f3:
             f3.write("sentence\tlabel\n")
             for sent in test:
                 f3.write(sent)
